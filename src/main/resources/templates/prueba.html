@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Título</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        main {
+            max-width: 800px;
+            width: 100%;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background-color: white;
+            border-radius: 8px;
+        }
+
+        #tablaOrdenes {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        #tablaOrdenes th, #tablaOrdenes td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        #tablaOrdenes th {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+            font-size: 16px;
+        }
+
+        input {
+            padding: 10px;
+            font-size: 16px;
+            width: calc(100% - 22px);
+            margin-bottom: 10px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+<main>
+    <script>
+        function realizarConsulta() {
+            const fecha = document.getElementById('inputFecha').value;
+            const opciones = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ "fecha": fecha }),
+            };
+
+            fetch('http://localhost:8080/orden/date', opciones)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Error de red: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    mostrarResultados(data);
+                })
+                .catch(error => {
+                    console.error('Error durante la solicitud:', error);
+                });
+        }
+
+        function mostrarResultados(ordenes) {
+            const tabla = document.getElementById('tablaOrdenes');
+            const tieneCabecera = tabla.rows.length > 0;
+            const atributosAMostrar = ["nombreCliente", "nombreTecnico", "fechaOrden", "categoria"];
+
+            // Obtener filas existentes en la tabla
+            const filasEnTabla = Array.from(tabla.getElementsByTagName("tr"))
+                .slice(1); // Excluye la fila de cabecera
+
+            ordenes.forEach(orden => {
+                // Verificar si la orden ya existe en la tabla
+                const ordenExistente = filasEnTabla.find(fila => {
+                    const atributosFila = Array.from(fila.children).map(celda => celda.textContent);
+                    const atributosOrden = atributosAMostrar.map(atributo => {
+                        if (atributo === "fechaOrden") {
+                            const fecha = new Date(orden[atributo]);
+                            return `${fecha.getFullYear()}/${fecha.getMonth() + 1}/${fecha.getDate()}`;
+                        } else {
+                            return orden[atributo];
+                        }
+                    });
+                    return JSON.stringify(atributosFila) === JSON.stringify(atributosOrden);
+                });
+
+                // Si la orden no existe, la agregamos a la tabla
+                if (!ordenExistente) {
+                    const fila = tabla.insertRow();
+
+                    if (!tieneCabecera) {
+                        const filaCabecera = tabla.insertRow();
+                        atributosAMostrar.forEach(atributo => {
+                            const th = document.createElement("th");
+                            th.textContent = atributo;
+                            filaCabecera.appendChild(th);
+                        });
+                    }
+
+                    atributosAMostrar.forEach(atributo => {
+                        const celda = fila.insertCell();
+                        if (atributo === "fechaOrden") {
+                            const fecha = new Date(orden[atributo]);
+                            const formatoFecha = `${fecha.getFullYear()}/${fecha.getMonth() + 1}/${fecha.getDate()}`;
+                            celda.textContent = formatoFecha;
+                        } else {
+                            celda.textContent = orden[atributo];
+                        }
+                    });
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Puedes agregar más lógica aquí según tus necesidades
+        });
+    </script>
+
+    <label for="inputFecha">Fecha:</label>
+    <input type="date" id="inputFecha">
+    <button onclick="realizarConsulta()">Realizar Consulta</button>
+
+    <table id="tablaOrdenes">
+        <thead>
+        <tr>
+            <th>Nombre Cliente</th>
+            <th>Nombre técnico</th>
+            <th>Fecha de la orden</th>
+            <th>Categoría</th>
+        </tr>
+        </thead>
+        <tbody>
+        <!-- Las filas de la tabla se agregarán dinámicamente aquí -->
+        </tbody>
+    </table>
+</main>
+</body>
+</html>
